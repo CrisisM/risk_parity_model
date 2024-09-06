@@ -1,1 +1,1 @@
-# first project
+# Risk parity model
