@@ -16,66 +16,65 @@ import matplotlib.pyplot as plt
 
 
 '''
-一、读取Excel数据--------------------------------------------------------------------------------------------------------------------------------
+1. Read Excel Data--------------------------------------------------------------------------------------------------------------------------------
 '''
 
-
 '''
-2.1（需要修改的参数3）文件路径设置，需要在输入的excel里按模版格式提取数据，将文件路径复制给下面的参数
-pandas的openxsl函数默认读取excel的第一张工作表
+2.1 (Parameters to modify 3) File path settings. You need to extract data from the input Excel file according to the template format and copy the file path to the parameters below.
+The pandas openxl function reads the first sheet of the Excel file by default.
 '''
-# 读取原始Excel文件
-# write_file_path = r"F:\A2 public共享区\刘文博-202310\a3.模型策略\a6.风险平价封装\风险平价策略输出.xlsx"
-# read_file_path = r"F:\A2 public共享区\刘文博-202310\a3.模型策略\a6.风险平价封装\风险平价策略输入.xlsx"
+# Read the original Excel file
+# write_file_path = r"your profile address"
+# read_file_path = r"your profile address"
 
-write_file_path = r"C:\Users\刘\Nutstore\1\A2 public共享区\刘文博-202310\a4.模型策略\a1.风险平价模型封装\风险平价策略输出.xlsx"
-read_file_path = r"C:\Users\刘\Nutstore\1\A2 public共享区\刘文博-202310\a4.模型策略\a1.风险平价模型封装\风险平价策略输入.xlsx"
-# 获取Excel文件中所有工作表的名称
+write_file_path = r"your profile address"
+read_file_path = r"your profile address"
+# Get all sheet names from the Excel file
 sheet_names = pd.ExcelFile(read_file_path).sheet_names
-# 创建一个空字典，用于存储不同工作表的DataFrame
+# Create an empty dictionary to store DataFrames for different sheets
 dataframes = {}
-# 依次读取每个工作表并存储在字典中
+# Read each sheet and store it in the dictionary
 for sheet_name in sheet_names:
-    # 使用pandas的read_excel函数读取工作表数据
+    # Use pandas' read_excel function to read the sheet data
     df = pd.read_excel(read_file_path, sheet_name=sheet_name)
-    # 将DataFrame存储在字典中，以工作表名称作为键
+    # Store the DataFrame in the dictionary with the sheet name as the key
     dataframes[sheet_name] = df
 
 
 '''
-2.2 输出显示与内容格式设置
+2.2 Output display and content format settings
 '''
-# 禁止使用科学计数法，保留2个小数位
+# Disable scientific notation, retain two decimal places
 pd.set_option('display.float_format', lambda x: '%.2f' % x)
 
-# 全部输出显示，不限制输出显示行列数（不设置的话默认20）
+# Display all output without limiting the number of rows and columns
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
 
-# 避免warning
+# Avoid warnings
 warnings.filterwarnings('ignore')
 
-# 检查写入权限
+# Check write permissions
 
 
 def check_write_permission(file_path):
-    # 检查目录是否具有写入权限
+    # Check if the directory has write permissions
     directory = os.path.dirname(file_path)
     if os.access(directory, os.W_OK):
-        print(f"目录 {directory} 具有写入权限.")
+        print(f"Directory {directory} has write permission.")
     else:
-        print(f"目录 {directory} 没有写入权限.")
+        print(f"Directory {directory} does not have write permission.")
 
-    # 检查文件是否存在，并检查文件是否具有写入权限
+    # Check if the file exists and if it has write permissions
     if os.path.exists(file_path):
         if os.access(file_path, os.W_OK):
-            print(f"文件 {file_path} 具有写入权限.")
+            print(f"File {file_path} has write permission.")
         else:
-            print(f"文件 {file_path} 没有写入权限.")
+            print(f"File {file_path} does not have write permission.")
     else:
-        print(f"文件 {file_path} 不存在.")
+        print(f"File {file_path} does not exist.")
 
-# 导入存储的数据
+# Import stored data
 
 
 def set_index(close_price_ord):
@@ -85,45 +84,44 @@ def set_index(close_price_ord):
 
 
 '''
-2.3 结果写入模块
+2.3 Result writing module
 '''
-# 使用pandas库的ExcelWriter类来创建一个用于写入Excel文件的对象writer
-# 使用engine='openpyxl'参数，表示使用openpyxl作为底层引擎来进行Excel文件的写入操作
+# Use pandas' ExcelWriter class to create an object for writing Excel files
+# Use engine='openpyxl' to specify the openpyxl engine for Excel file writing
 
-# 结果写入
+# Write results
 writer = pd.ExcelWriter(write_file_path, engine='openpyxl',
                         mode='a', if_sheet_exists='replace')
 check_write_permission(write_file_path)
-# 加载已存在的Excel文件
+# Load the existing Excel file
 try:
     book = load_workbook(write_file_path)
 except FileNotFoundError:
-    # 如果文件不存在，会出现异常，不过没关系，ExcelWriter会自动创建新文件
+    # If the file does not exist, an exception will occur, but it's okay, ExcelWriter will automatically create a new file
     book = None
 
 
 '''
-二、风险平价策略相关方程--------------------------------------------------------------------------------------------------------------------------
+2. Risk Parity Strategy Equations--------------------------------------------------------------------------------------------------------------------------
 '''
-# 方程1：计算各个资产风险贡献的方差的方程
+# Equation 1: Formula for calculating the variance of risk contributions of each asset
 
 
 def risk_budget_objective(weights, cov):
-    weights = np.array(weights)  # weights为一维数组
-    sigma = np.sqrt(np.dot(weights, np.dot(cov, weights)))  # 获取组合标准差
-    #sigma = np.sqrt(weights@cov@weights)
-    MRC = np.dot(cov, weights)/sigma  # 计算边际风险贡献
-    TRC = weights * MRC  # 计算单个资产对投资组合的风险贡献
-    delta_TRC = [sum((i - TRC)**2) for i in TRC]  # 计算各个资产之间风险贡献的方差
+    weights = np.array(weights)  # weights is a one-dimensional array
+    sigma = np.sqrt(np.dot(weights, np.dot(cov, weights)))  # Get portfolio standard deviation
+    MRC = np.dot(cov, weights)/sigma  # Calculate marginal risk contribution
+    TRC = weights * MRC  # Calculate each asset's contribution to portfolio risk
+    delta_TRC = [sum((i - TRC)**2) for i in TRC]  # Calculate the variance of risk contributions between assets
     return sum(delta_TRC)
 
-# 方程2：资产不可以做空，权重和为1
+# Equation 2: Assets cannot be shorted, and the sum of weights equals 1
 
 
 def total_weight_constraint(x):
     return np.sum(x)-1.0
 
-# 方程3：将小数转换为百分比
+# Equation 3: Convert decimal to percentage
 
 
 def percent_formatter(x, pos):
@@ -131,7 +129,7 @@ def percent_formatter(x, pos):
 
 
 '''
-三、风险平价策略计算模块--------------------------------------------------------------------------------------------------------------------------
+3. Risk Parity Strategy Calculation Module--------------------------------------------------------------------------------------------------------------------------
 '''
 
 
@@ -139,171 +137,172 @@ def Asset_Allocation_risk_parity(df, sheet_name, frequency):
     '''
     3.1 将净值数据转换为日收益率数据
     '''
-    # (1)获取除了第一列（日期列）之外的所有列，这些列包含股票数据
+    # (1) Get all columns except the first column (date column), these columns contain stock data
     stock_columns = df.columns[1:]
-    # (2)计算每只股票的日收益率并存储为新的DataFrame
+    # (2) Calculate daily returns for each stock and store it in a new DataFrame
     ret = pd.DataFrame()
-    # (3)将日期列复制到新的DataFrame中
+    # (3) Copy the date column into the new DataFrame
     ret['Date'] = df['Date']
-    # (4)计算每只股票的日收益率并添加到returns_df中
+    # (4) Calculate daily returns for each stock and add it to the returns DataFrame
     for stock_column in stock_columns:
         col_name = f'{stock_column}'
-        ret[col_name] = df[stock_column].pct_change()  # 使用pct_change()计算日收益率
-    # (5)删除包含NaN值的行（第一个日期的数据）,得到日收益率数据
+        ret[col_name] = df[stock_column].pct_change()  # Use pct_change() to calculate daily returns
+    # (5) Remove rows containing NaN values (the first date), resulting in daily return data
     ret = ret.dropna()
 
     '''
-    3.2 初始化各类型数据数组
+    3.2 Initialize various data arrays
     '''
-    # (1)初始纵坐标每个月收益率的数组
+    # (1) Initial array for monthly returns
     ret_sum = []
-    # (2)初始横坐标月的数组
+    # (2) Initial array for months (x-axis)
     month_x = []
-    # (3)求大类资产有多少个
+    # (3) Number of asset classes
     k = ret.shape[1] - 1
-    # (4)初始化各个大类资产的二维数组
+    # (4) Initialize two-dimensional array for each asset class
     asset_nv = [[] for _ in range(k)]
-    # (5)初始化大类资产比例的二维数组
+    # (5) Initialize two-dimensional array for asset allocation percentages
     percen_alloc = [[]for _ in range(k)]
 
     '''
-    3.3 风险平价策略计算各个资产的权重
+    3.3 Risk parity strategy calculation for asset weights
     '''
-    # 1.将日期列转换为日期时间类型并使用groupby按月分组数据
+    # 1. Convert the date column to datetime and group the data by month using groupby
     ret['Date'] = pd.to_datetime(ret['Date'])
     monthly_groups = ret.groupby(ret['Date'].dt.to_period('M'))
-    # 2.按前n个月计算当月资产的权重
+    # 2. Calculate asset weights for the current month based on the previous n months
     for month, data in monthly_groups:
 
-        # 显示每个月的数据，debug时方便观测
+        # Display data for each month for debugging purposes
         #print(f"Month: {month.to_timestamp().strftime('%Y-%m')}")
 
-        # (1)计算前n个月的数据
-        previous_data = pd.DataFrame()  # 创建一个空的DataFrame用于存储前n个月的数据
+        # (1) Calculate data for the previous n months
+        previous_data = pd.DataFrame()  # Create an empty DataFrame to store data from the previous n months
         for i in range(frequency - 1, -1, -1):
             previous_month = month - i - 1
-            # 如果前n个月的数据不存在就不得到当前月的数据
+            # If data for the previous n months does not exist, skip to the current month
             if previous_month not in monthly_groups.groups:
                 break
             previous_data = pd.concat(
                 [previous_data, monthly_groups.get_group(previous_month)])
 
-        # (1.1)如果前面n个月的数据为空则不进行后面的运算
+        # (1.1) If the previous n months' data is empty, skip further calculations
         if previous_data.empty:
             continue
-        # (1.2)不为空则继续后面的运算
+        # (1.2) If not empty, proceed with further calculations
         else:
-            # (2)使用前n个月的数据计算协方差矩阵
+            # (2) Calculate covariance matrix using data from the previous n months
             R_cov = previous_data.cov()
             cov_mon = np.array(R_cov)
             # print(previous_data.head())
 
-            # (3)使用上个月的数据计算当月的配比
-            # (3.1)定义初始猜测值,权重和为1
+            # (3) Calculate allocation for the current month based on last month's data
+            # (3.1) Define initial guess values, weights sum to 1
             x0 = np.ones(cov_mon.shape[0]) / cov_mon.shape[0]
-            # (3.2)定义边界条件
+            # (3.2) Define boundary conditions
             bnds = tuple((0, None) for x in x0)
-            # (3.3)定义约束条件，返回值为0
+            # (3.3) Define constraints, return value must be 0
             cons = ({'type': 'eq', 'fun': total_weight_constraint})
-            # (3.4)多次迭代求最优解（牛顿迭代可能迭代次数过少）
+            # (3.4) Iterate multiple times to find the optimal solution (Newton iteration may not have enough iterations)
             options = {'disp': False, 'maxiter': 10000, 'ftol': 1e-20}
-            # (3.5)求最优化问题：方差最小值时权重的解
+            # (3.5) Solve the optimization problem to find the solution that minimizes variance
             solution = minimize(risk_budget_objective, x0, args=(
                 cov_mon), bounds=bnds, constraints=cons, options=options)
 
-            # (4)计算这个月每个标的的收益率
-            # (4.1)选择大类资产列，假设大类资产的日收益率数据从第二列开始
+            # (4) Calculate the returns for each asset during this month
+            # (4.1) Select asset columns, assuming asset daily returns data starts from the second column
             asset_returns = data.iloc[:, 1:]
-            # (4.2)计算每个大类资产的每天收益率，并计算累积乘积得到每个月各资产的收益率
+            # (4.2) Calculate daily returns for each asset and get cumulative returns for the month
             cumulative_returns = (1 + asset_returns).cumprod().iloc[-1] - 1
             cumuret = cumulative_returns.values.reshape(1, -1)[0]
 
-            # (5)计算这个月的资产组合总收益率
+            # (5) Calculate the total portfolio return for the month
             retmonth = np.dot(solution.x, cumuret)
 
-            # (6)将每个月的资产组合收益率存入数组
+            # (6) Store the portfolio return for each month in the array
             ret_sum.append(retmonth)
 
-            # (7)将每个月各个资产的收益率存入数组
+            # (7) Store the return of each asset for each month in the array
             for i in range(k):
                 asset_nv[i].append(cumuret[i])
 
-            # (8)将当月作为横坐标存入数组
+            # (8) Store the current month as the x-axis value in the array
             mon = month.to_timestamp().strftime('%Y-%m')
             month_x.append(mon)
 
-            # (9)将每月的资产比例存入percen_alloc
+            # (9) Store the asset allocation percentages for each month in percen_alloc
             for i in range(k):
                 percen_alloc[i].append(solution.x[i])
 
-    # 3.求每个月的投资组合累计收益率并存入ret_sum
+    # 3. Calculate the cumulative portfolio returns for each month and store in ret_sum
     for i in range(0, len(ret_sum)):
         ret_sum[i] = ret_sum[i] + 1
     for i in range(1, len(ret_sum)):
         ret_sum[i] = ret_sum[i-1] * ret_sum[i]
 
-    # 4.求每个月的各个资产的累计收益率并存入asset_nv
+    # 4. Calculate the cumulative returns for each asset for each month and store in asset_nv
     for i in range(k):
         for j in range(0, len(month_x)):
             asset_nv[i][j] = asset_nv[i][j] + 1
         for j in range(1, len(month_x)):
             asset_nv[i][j] = asset_nv[i][j-1] * asset_nv[i][j]
 
-    # 5.创建各个资产投资组合比例的Dataframe
+    # 5. Create a DataFrame for the asset allocation percentages for each asset
     df_percen_alloc = pd.DataFrame(percen_alloc).T
     df_month_x = pd.DataFrame(month_x)
 
-    # 6.合并月日期和相对应的数据
+    # 6. Merge the month dates with the corresponding data
     merged_df_percen_alloc = pd.concat([df_month_x, df_percen_alloc], axis=1)
     merged_df_percen_alloc.rename(columns=dict(
         zip(merged_df_percen_alloc.columns, ret.columns)), inplace=True)
     merged_df_percen_alloc.columns.values[0] = 'Date'
 
-    # 7.将Date列设置为索引
+    # 7. Set the Date column as the index
     merged_df_percen_alloc['Date'] = pd.to_datetime(
         merged_df_percen_alloc['Date'])
     merged_df_percen_alloc.set_index('Date', inplace=True)
 
-    # 8.使用resample方法，D表示按天重新采样,并向后填充每个月的值
+    # 8. Use the resample method, 'D' means resampling by day, and backfill each month's value
     merged_df_percen_alloc_resampled = merged_df_percen_alloc.resample(
         'D').ffill()
 
-    # 9.将dataframe写入excel
+    # 9. Write the DataFrame to Excel
     merged_df_percen_alloc_resampled.to_excel(
         writer, sheet_name=str(sheet_name), index=True)
 
-    # 10.保存并关闭excel
+    # 10. Save and close the Excel writer
     writer.save()
 
-    # 11.画出资产风险平价投资组合和资产的收益率曲线
-    # (1)设置图像的大小
+    # 11. Plot the returns for the risk parity portfolio and individual assets
+    # (1) Set the figure size
     plt.figure(figsize=(40, 20))  # Adjust the width and height as needed
 
-    # (2)画出资产和投资组合的收益率曲线
+    # (2) Plot the returns of the assets and the portfolio
     for i in range(len(asset_nv)):
         plt.plot(month_x, asset_nv[i], label=f'{ret.columns[i]}')
     plt.plot(month_x, ret_sum, label='Risk-Parity Portfolio')
 
-    # (3)设置横纵坐标
+    # (3) Set the x and y labels
     plt.xlabel('Month')
     plt.ylabel('Net Value of Assets and Portfolio')
     plt.title('Net Value of Assets and Portfolio Over Time')
 
-    # (4)使横坐标看得更清晰
+    # (4) Rotate the x-axis labels for better readability
     plt.xticks(rotation=45)
 
-    # (5)加标记
+    # (5) Add a legend
     plt.legend(loc='upper left', fontsize='large')
 
-    # (6)画出图像
+    # (6) Display the plot
     plt.show()
 
 
+
 '''
-四、实现-----------------------------------------------------------------------------------------------------------------------------------
-注：最后数字代表frequency，即往前多久的时间计算协方差矩阵
+4. Implementation-----------------------------------------------------------------------------------------------------------------------------------
+Note: The final number represents the frequency, i.e., how far back in time the covariance matrix is calculated.
 '''
-Asset_Allocation_risk_parity(dataframes["国内股债商"], "国内股债商", 3)
-Asset_Allocation_risk_parity(dataframes["国外股债商"], "国外股债商", 3)
+Asset_Allocation_risk_parity(dataframes["your"], "your", 3)
+Asset_Allocation_risk_parity(dataframes["your"], "your", 3)
 
 writer.close()
